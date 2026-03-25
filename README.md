@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+### Website for Intelliforge
 
-TODO: Document your project here
+A website for a startup that provides AI Solutions to their customer.
