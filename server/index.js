@@ -12,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -110,7 +110,7 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       systemInstruction: SYSTEM_PROMPT
     });
 
@@ -135,6 +135,16 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // Start server
+const distPath = join(__dirname, "../dist");
+app.use(express.static(distPath));
+
+// Catch-all route for frontend (SPA)
+app.get("*", (re, res, next) => {
+  // Only serve index.html if it's not an API request
+  if (re.url.startsWith('/api')) return next();
+  res.sendFile(join(distPath, "index.html"));
+});
+
 app.listen(PORT, () => {
   console.log(`✅ IntelliForge API server running on http://localhost:${PORT}`);
 });

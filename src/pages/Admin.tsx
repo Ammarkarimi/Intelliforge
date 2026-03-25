@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Mail, Building2, Calendar, Trash2, Inbox, RefreshCcw, Loader2, Database, Lock, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = "/api";
 const VALID_USERNAME = "AmmarKarimi2002";
 const VALID_PASSWORD = "AmmarKarimi@2002@DAIICT";
 
