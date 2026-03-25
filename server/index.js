@@ -139,9 +139,11 @@ const distPath = join(__dirname, "../dist");
 app.use(express.static(distPath));
 
 // Catch-all route for frontend (SPA)
-app.get("(.*)", (re, res, next) => {
+app.use((req, res) => {
   // Only serve index.html if it's not an API request
-  if (re.url.startsWith('/api')) return next();
+  if (req.url.startsWith('/api')) {
+    return res.status(404).json({ error: "API route not found" });
+  }
   res.sendFile(join(distPath, "index.html"));
 });
 
