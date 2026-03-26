@@ -51,10 +51,24 @@ db.exec(`
     message TEXT NOT NULL,
     date TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
+  );
+
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT,
+    request_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    text TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 // --- API Routes ---
+// GET chat log (all messages)
+app.get("/api/chat-logs", (req, res) => {
+  const logs = db.prepare("SELECT * FROM chat_messages ORDER BY created_at DESC LIMIT 200").all();
+  res.json(logs);
+});
 
 // GET all submissions (newest first)
 app.get("/api/submissions", (req, res) => {
@@ -127,6 +141,12 @@ app.post("/api/chat", async (req, res) => {
 
     const result = await chat.sendMessage(message);
     const responseText = result.response.text();
+
+    // Log to DB (User and Bot message)
+    const requestId = Date.now().toString();
+    const insertStmt = db.prepare("INSERT INTO chat_messages (request_id, role, text) VALUES (?, ?, ?)");
+    insertStmt.run(requestId, "user", message);
+    insertStmt.run(requestId, "model", responseText);
 
     res.json({ reply: responseText });
   } catch (error) {
