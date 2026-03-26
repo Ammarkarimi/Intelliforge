@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Loader2 } from "lucide-react";
 import { useState, FormEvent } from "react";
 
-const API_URL = "/api";
+const API_URL = "https://intelliforge.onrender.com/api";
 
 const Contact = () => {
   const [submitted, setSubmitted] = useState(false);

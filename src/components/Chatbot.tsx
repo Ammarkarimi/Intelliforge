@@ -44,7 +44,7 @@ const Chatbot = () => {
       // Therefore, we filter out the initial 'model' greeting if it is the very first message.
       const historyToSend = chatHistory.filter((m, idx) => !(idx === 0 && m.role === "model"));
 
-      const response = await fetch("/api/chat", {
+      const response = await fetch("https://intelliforge.onrender.com/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
