@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import Database from "better-sqlite3";
+import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import dotenv from "dotenv";
@@ -9,8 +9,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Initialize Supabase
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,49 +39,43 @@ CRITICAL INSTRUCTIONS:
 app.use(cors());
 app.use(express.json());
 
-// Database setup
-const db = new Database(join(__dirname, "intelliforge.db"));
-db.pragma("journal_mode = WAL");
-
-// Create table if not exists
-db.exec(`
-  CREATE TABLE IF NOT EXISTS contact_submissions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    company TEXT DEFAULT '',
-    message TEXT NOT NULL,
-    date TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS chat_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT,
-    request_id TEXT NOT NULL,
-    role TEXT NOT NULL,
-    text TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-`);
-
 // --- API Routes ---
-// GET chat log (all messages)
-app.get("/api/chat-logs", (req, res) => {
-  const logs = db.prepare("SELECT * FROM chat_messages ORDER BY created_at DESC LIMIT 200").all();
-  res.json(logs);
+
+// GET chat log (all messages) from Supabase
+app.get("/api/chat-logs", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error("Supabase Chat Logs error:", err);
+    res.status(500).json({ error: "Failed to fetch chat logs" });
+  }
 });
 
-// GET all submissions (newest first)
-app.get("/api/submissions", (req, res) => {
-  const submissions = db
-    .prepare("SELECT * FROM contact_submissions ORDER BY created_at DESC")
-    .all();
-  res.json(submissions);
+// GET all submissions (newest first) from Supabase
+app.get("/api/submissions", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('contact_submissions')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error("Supabase Submissions error:", err);
+    res.status(500).json({ error: "Failed to fetch submissions" });
+  }
 });
 
-// POST a new submission
-app.post("/api/submissions", (req, res) => {
+// POST a new submission to Supabase
+app.post("/api/submissions", async (req, res) => {
   const { name, email, company, message } = req.body;
 
   if (!name || !email || !message) {
@@ -87,32 +83,36 @@ app.post("/api/submissions", (req, res) => {
   }
 
   const date = new Date().toISOString();
-  const stmt = db.prepare(
-    "INSERT INTO contact_submissions (name, email, company, message, date) VALUES (?, ?, ?, ?, ?)"
-  );
-  const result = stmt.run(name, email, company || "", message, date);
+  try {
+    const { data, error } = await supabase
+      .from('contact_submissions')
+      .insert([{ name, email, company: company || "", message, date }])
+      .select()
+      .single();
 
-  res.status(201).json({
-    id: result.lastInsertRowid,
-    name,
-    email,
-    company: company || "",
-    message,
-    date,
-  });
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (err) {
+    console.error("Supabase Post Submission error:", err);
+    res.status(500).json({ error: "Failed to save submission" });
+  }
 });
 
-// DELETE a submission
-app.delete("/api/submissions/:id", (req, res) => {
+// DELETE a submission from Supabase
+app.delete("/api/submissions/:id", async (req, res) => {
   const { id } = req.params;
-  const stmt = db.prepare("DELETE FROM contact_submissions WHERE id = ?");
-  const result = stmt.run(id);
+  try {
+    const { error } = await supabase
+      .from('contact_submissions')
+      .delete()
+      .eq('id', id);
 
-  if (result.changes === 0) {
-    return res.status(404).json({ error: "Submission not found." });
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Supabase Delete error:", err);
+    res.status(404).json({ error: "Submission not found or failed to delete." });
   }
-
-  res.json({ success: true });
 });
 
 // Chat endpoint
@@ -142,11 +142,13 @@ app.post("/api/chat", async (req, res) => {
     const result = await chat.sendMessage(message);
     const responseText = result.response.text();
 
-    // Log to DB (User and Bot message)
     const requestId = Date.now().toString();
-    const insertStmt = db.prepare("INSERT INTO chat_messages (request_id, role, text) VALUES (?, ?, ?)");
-    insertStmt.run(requestId, "user", message);
-    insertStmt.run(requestId, "model", responseText);
+    await supabase
+      .from('chat_messages')
+      .insert([
+        { request_id: requestId, role: "user", text: message },
+        { request_id: requestId, role: "model", text: responseText }
+      ]);
 
     res.json({ reply: responseText });
   } catch (error) {
