@@ -4,6 +4,7 @@ import Database from "better-sqlite3";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import dotenv from "dotenv";
+import https from "https";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 dotenv.config();
@@ -150,3 +151,13 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ IntelliForge API server running on http://localhost:${PORT}`);
 });
+
+// Self-ping loop to prevent Render spin-down
+const SELF_URL = "https://intelliforge.onrender.com";
+setInterval(() => {
+  https.get(SELF_URL, (res) => {
+    console.log(`[Self-Ping] Status: ${res.statusCode} at ${new Date().toISOString()}`);
+  }).on('error', (err) => {
+    console.error("[Self-Ping] Error:", err.message);
+  });
+}, 300000); // 5 minutes (300,000 ms)
