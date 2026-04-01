@@ -40,7 +40,7 @@ const CaseStudies = () => (
       <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="max-w-xl mb-16">
         <p className="text-accent font-semibold text-sm tracking-widest uppercase mb-3">Client Success</p>
         <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">Case Studies</h2>
-        <p className="text-muted-foreground mt-4">Measurable impact delivered across industries — here's how we've helped our clients achieve transformative results.</p>
+        <p className="text-muted-foreground mt-4">Measurable impact delivered across industries, here's how we've helped our clients achieve transformative results.</p>
       </motion.div>
 
       <div className="grid lg:grid-cols-3 gap-6">

@@ -11,9 +11,9 @@ const partners = [
     icon: GraduationCap,
   },
   {
-    name: "International Institute of Information Technology Hyderabad",
-    short: "IIIT Hyderabad",
-    logo: "/iiith-logo.jpg",
+    name: "Atal Bihari Vajpayee Indian Institute of Information Technology and Management Gwalior",
+    short: "IIITM Gwalior",
+    logo: "/IIITM-Gwalior.png",
     label: "Research Collaboration",
     description: "Co-developing advanced NLP and computer vision solutions through sponsored research projects and shared IP.",
     icon: FlaskConical,
